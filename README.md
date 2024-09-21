@@ -22,146 +22,101 @@ Developed by: Shanmuga Vasanth M
 
 RegisterNumber: 212223040191
 ```
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import optimize
-
-data = np.loadtxt("/content/ex2data2.txt",delimiter = ',')
-x= data[:,[0,1]]
-y= data[:,2]
-print('Array Value of x:')
-x[:5]
-
-print('Array Value of y:')
-y[:5]
-
-print('Exam 1-Score graph')
-plt.figure()
-plt.scatter(x[y == 1][:,0],x[y == 1][:,1],label='Admitted')
-plt.scatter(x[y == 0][:,0],x[y == 0][:,1],label=' Not Admitted')
-plt.xlabel('Exam 1 score')
-plt.ylabel('Exam 2 score')
-plt.legend()
-plt.show()
-
-
+dataset = pd.read_csv('Placement_Data.csv')
+dataset
+dataset = dataset.drop('sl_no',axis=1) 
+dataset = dataset.drop('salary',axis=1)
+dataset["gender"] = dataset["gender"].astype('category')
+dataset["ssc_b"] = dataset["ssc_b"].astype('category')
+dataset["hsc_b"] = dataset["hsc_b"].astype('category')
+dataset["degree_t"] = dataset["degree_t"].astype('category')
+dataset["workex"] = dataset["workex"].astype('category')
+dataset["specialisation"] = dataset["specialisation"].astype('category')
+dataset["status"] = dataset["status"].astype('category')
+dataset["hsc_s"] = dataset["hsc_s"].astype('category')
+dataset.dtypes
+dataset["gender"] = dataset["gender"].cat.codes
+dataset["ssc_b"] = dataset["ssc_b"].cat.codes
+dataset["hsc_b"] = dataset["hsc_b"].cat.codes
+dataset["degree_t"] = dataset["degree_t"].cat.codes
+dataset["workex"] = dataset["workex"].cat.codes
+dataset["specialisation"] = dataset["specialisation"].cat.codes
+dataset["status"] = dataset["status"].cat.codes
+dataset["hsc_s"] = dataset["hsc_s"].cat.codes
+dataset
+X = dataset.iloc[:, :-1].values
+Y = dataset.iloc[:, -1].values
+Y
+theta = np.random.randn(X.shape[1])
+y=Y
 def sigmoid(z):
-  return 1/(1+np.exp(-z))
-  
-print('Sigmoid function graph: ')
-plt.plot()
-x_plot = np.linspace(-10,10,100)
-plt.plot(x_plot,sigmoid(x_plot))
-plt.show()
-
-
-def costFunction(theta,x,y):
-  h = sigmoid(np.dot(x,theta))
-  j = -(np.dot(y,np.log(h))+np.dot(1-y,np.log(1-h)))/x.shape[0]
-  grad = np.dot(x.T,h-y)/x.shape[0]
-  return j,grad
-
-
-print('X_train_grad_value: ')
-x_train = np.hstack((np.ones((x.shape[0],1)),x))
-theta = np.array([0,0,0])
-j,grad = costFunction(theta,x_train,y)
-print(j)
-print(grad)
-
-
-print('y_train_grad_value: ')
-x_train=np.hstack((np.ones((x.shape[0],1)),x))
-theta=np.array([-24,0.2,0.2])
-j,grad=costFunction(theta,x_train,y)
-print(j)
-print(grad)
-
-def cost(theta,x,y):
-  h = sigmoid(np.dot(x,theta))
-  j = -(np.dot(y,np.log(h))+np.dot(1-y,np.log(1-h)))/x.shape[0]
-  return j
-
-
-def gradient(theta,X,y):
-  h=sigmoid(np.dot(X,theta))
-  grad=np.dot(X.T,h-y)/X.shape[0]
-  return grad
-
-print('res.x:')
-x_train = np.hstack((np.ones((x.shape[0],1)),x))
-theta = np.array([0,0,0])
-res = optimize.minimize(fun=cost,x0=theta,args=(x_train,y),method='Newton-CG',jac=gradient)
-print(res.fun)
-print(res.x)
-
-
-def plotDecisionBoundary(theta,x,y):
-  x_min,x_max = x[:,0].min()-1,x[:,0].max()+1
-  y_min,y_max = x[:,1].min()-1,x[:,1].max()+1
-  xx,yy = np.meshgrid(np.arange(x_min,x_max,0.1),np.arange(y_min,y_max,0.1))
-  x_plot = np.c_[xx.ravel(),yy.ravel()]
-  x_plot = np.hstack((np.ones((x_plot.shape[0],1)),x_plot))
-  y_plot = np.dot(x_plot,theta).reshape(xx.shape)
-  plt.figure()
-  plt.scatter(x[y == 1][:,0],x[y == 1][:,1],label='Admitted')
-  plt.scatter(x[y == 0][:,0],x[y == 0][:,1],label='Not Admitted')
-  plt.contour(xx,yy,y_plot,levels=[0])
-  plt.xlabel('Exam  1 score')
-  plt.ylabel('Exam 2 score')
-  plt.legend()
-  plt.show()
-
-print('DecisionBoundary-graph for exam score: ')
-plotDecisionBoundary(res.x,x,y)
-
-print('Proability value: ')
-prob=sigmoid(np.dot(np.array([1,45,85]),res.x))
-print(prob)
-
-
-def predict(theta,x):
-  x_train = np.hstack((np.ones((x.shape[0],1)),x))
-  prob = sigmoid(np.dot(x_train,theta))
-  return (prob >=0.5).astype(int)
-
-
-print('Prediction value of mean:')
-np.mean(predict(res.x,x)==y)
-*/
+    return 1 / (1 + np.exp(-z))
+def loss(theta, X, y):
+    h = sigmoid(X.dot(theta))
+    return -np.sum(y * np.log(h) + (1 - y) * np.log(1 - h))
+def gradient_descent(theta, X, y, alpha, num_iterations):
+    m = len(y)
+    for i in range(num_iterations):
+        h = sigmoid(X.dot(theta))
+        gradient = X.T.dot(h - y) / m
+        theta -= alpha * gradient
+    return theta
+theta = gradient_descent(theta, X, y, alpha=0.01, num_iterations=1000)
+def predict(theta, X):
+    h = sigmoid(X.dot(theta))
+    y_pred = np.where(h >= 0.5, 1, 0)
+    return y_pred
+y_pred = predict(theta, X)
+accuracy = np.mean(y_pred.flatten() == y)
+print("Accuracy:", accuracy)
+print(y_pred)
+print(Y)
+xnew = np.array([[0, 87, 0, 95, 0, 2, 78, 2, 0, 0, 1, 0]])
+y_prednew = predict(theta, xnew)
+print(y_prednew)
+xnew = np.array([[0, 0, 0, 0, 0, 2, 8, 2, 0, 0, 1, 0]])
+y_prednew = predict(theta, xnew)
+print(y_prednew)
 ```
 
 ## Output:
-## Array Value of x:
-![238196842-87b2bcb1-9f69-40fd-9da7-789d03b3db7a](https://github.com/user-attachments/assets/6e305306-e57c-4912-9a68-327e57a818b8)
 
-## Array Value of y:
-![238196875-48635643-f05c-48cb-8b21-d5b0d7e60bf5](https://github.com/user-attachments/assets/72ebf3ee-aefa-4b6b-9e10-fd2ca20b3303)
+Dataset
 
-## Score graph:
-![238196912-03841143-dec0-4bdf-beb0-08894db9b552](https://github.com/user-attachments/assets/67c06098-6e96-4c1e-8e19-96e0b6c4177d)
+![327994492-ad5d1f34-ffdd-41cd-b4ae-674ea384f912](https://github.com/user-attachments/assets/bda6d554-0285-44ff-92cd-340c2cc87668)
 
-## Sigmoid function graph:
-![238196954-8a1ab219-1661-4a15-ba5a-222974a4a948](https://github.com/user-attachments/assets/dd786eb5-39c4-4b24-b14e-e6ed892e4f38)
+Datatypes of Dataset
 
-## X_train_grad value:
-![238197005-bfedd65f-0a94-4042-b075-d3ed73047248](https://github.com/user-attachments/assets/74d4abbf-94de-4bb7-ae34-439b2f5bcb6c)
+![327994535-1731c847-b835-4b10-99b7-d5c336e4b41d](https://github.com/user-attachments/assets/916cea12-ecd4-40ad-b93c-3ef35e5dabf3)
 
-## Y_train_grad value:
-![238197045-ff2cbc3f-c96d-4044-96a0-b60f72d18c67](https://github.com/user-attachments/assets/6fb10dc9-4f31-4809-b0e9-f72058065f12)
+Labeled Dataset
 
-## res.x:
-![238197137-50d9a6fa-887a-4950-b765-1111b31db73e](https://github.com/user-attachments/assets/6d7d457c-b4d7-4dba-be06-ad4bc8664389)
+![327994590-63885416-005c-4f68-a2eb-caf259cabe53](https://github.com/user-attachments/assets/9c5f0fea-af6f-40f1-bb1a-c969d86e7d40)
 
-## Decision boundary:
-![image](https://github.com/user-attachments/assets/459a6dbf-3a47-4717-84da-9af1ffb18f1d)
+Y value (dependent variable)
 
-## Proability value:
-![image](https://github.com/user-attachments/assets/d7647877-c079-4ea2-82c2-a37a61558bfe)
+![327994625-d8c16cfa-c167-4cac-b9dd-b7245c0a5851](https://github.com/user-attachments/assets/b3eed1bc-1b35-474d-b1f3-fdb44d6a1f68)
 
-## Prediction value of mean:
-![image](https://github.com/user-attachments/assets/f03053da-41cf-4e07-93be-5fdd3ddb7aa4)
+Accuracy
+
+![327994642-348c556c-dfb9-4d11-a098-af3f8e657d05](https://github.com/user-attachments/assets/ed68b1ba-3f1c-4198-a8a4-875367c4f235)
+
+Predicted Y value
+
+![327994681-03dd51ee-da98-4b1f-bf10-e530673b898d](https://github.com/user-attachments/assets/238e5027-a6e7-4757-bbc1-dd33f273c386)
+
+Y value
+
+![327994706-2ec95e50-3792-4181-bbbb-80fff7290fc8](https://github.com/user-attachments/assets/a6cd4b1d-d5f4-45d8-9a31-e72a34938328)
+
+New Y predictions
+
+![327994749-9a12df40-b93c-4662-bf91-38b78e35acdd](https://github.com/user-attachments/assets/b6ca078e-cee4-4fe8-bd02-6407c5937bf7)
 
 ## Result:
+
 Thus the program to implement the the Logistic Regression Using Gradient Descent is written and verified using python programming.
 
